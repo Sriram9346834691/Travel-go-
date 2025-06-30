@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Seats - TravelApp</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5;
+        }
+        .seat-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 10px;
+            max-width: 500px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .seat {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.2s ease;
+            box-shadow: inset 0 -3px 0 rgba(0,0,0,0.1);
+        }
+        .seat.available {
+            background-color: #e0f2fe;
+            border: 2px solid #90cdf4;
+            color: #2b6cb0;
+        }
+        .seat.available:hover {
+            background-color: #90cdf4;
+            transform: translateY(-2px);
+        }
+        .seat.selected {
+            background-color: #38a169;
+            border: 2px solid #2f855a;
+            color: white;
+            transform: scale(1.05);
+        }
+        .seat.booked {
+            background-color: #cbd5e0;
+            border: 2px solid #a0aec0;
+            color: #718096;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        .seat-row-label {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #4a5568;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 50px;
+            grid-column: 1 / span 1;
+            background-color: #edf2f7;
+            border-radius: 8px;
+            margin-right: -5px;
+        }
+        .driver-seat {
+            grid-column: 1 / span 2;
+            background-color: #a0aec0;
+            color: white;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            height: 50px;
+        }
+        .entrance {
+            grid-column: 6 / span 1;
+            background-color: #fbd38d;
+            color: #975a16;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            height: 50px;
+        }
+        .seat-grid-container {
+            display: grid;
+            grid-template-columns: 50px repeat(6, 1fr);
+            gap: 10px;
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .seat-wrapper {
+             grid-column: span 1;
+        }
+        .row-label {
+            grid-column: 1;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: #4a5568;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 50px;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+    <!-- Navigation Bar -->
+    <nav class="bg-white shadow-lg p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <a href="/dashboard" class="text-2xl font-bold text-gray-800">TravelApp</a>
+            <div>
+                <a href="/dashboard" class="text-blue-600 hover:text-blue-800 font-semibold mr-4">Dashboard</a>
+                <a href="/logout" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-md shadow-md transition duration-300">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-4 py-8 flex-grow">
+        <h1 class="text-4xl font-bold text-gray-800 mb-8 text-center">Select Your Seats</h1>
+
+        <div class="bg-white p-8 rounded-lg shadow-md mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-6 text-center">Booking Summary</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-700">
+                <p><strong>Type:</strong> {{ booking_type | capitalize }} ({{ vehicle_type }})</p>
+                <p><strong>Route:</strong> {{ source }} to {{ destination }}</p>
+                <p><strong>Travel Date:</strong> {{ travel_date }}</p>
+                <p><strong>Departure/Time:</strong> {{ time }}</p>
+                <p><strong>Price per Person:</strong> ₹{{ "%.2f"|format(price_per_person) }}</p>
+                <p><strong>Number of Passengers:</strong> <span id="numPersonsDisplay">{{ num_persons }}</span></p>
+            </div>
+            <div class="mt-6 p-4 bg-blue-50 rounded-md border border-blue-200">
+                <p class="text-blue-700 font-medium text-lg">
+                    Please select <span id="requiredSeatsCount" class="font-bold text-xl">{{ num_persons }}</span> seat(s).
+                </p>
+                <p class="text-sm text-blue-600 mt-2">
+                    <span class="inline-block w-4 h-4 bg-[#e0f2fe] border border-[#90cdf4] rounded-sm mr-2 align-middle"></span> Available
+                    <span class="inline-block w-4 h-4 bg-[#38a169] border border-[#2f855a] rounded-sm mr-2 align-middle"></span> Selected
+                    <span class="inline-block w-4 h-4 bg-[#cbd5e0] border border-[#a0aec0] rounded-sm mr-2 align-middle"></span> Booked
+                </p>
+            </div>
+        </div>
+
+        <div class="seat-grid-container">
+            <!-- Driver/Front section -->
+            <div class="row-label"></div>
+            <div class="driver-seat col-span-2">Driver</div>
+            <div class="col-span-3"></div>
+            <div class="entrance">Door</div>
+            
+            {% for row_label in ['A', 'B', 'C', 'D', 'E'] %}
+                <div class="row-label">{{ row_label }}</div>
+                {% for seat_num in range(1, 7) %}
+                    {% set seat_id = row_label + seat_num|string %}
+                    <div id="{{ seat_id }}" 
+                         class="seat {% if seat_id in booked_seats %}booked{% else %}available{% endif %}"
+                         data-seat-id="{{ seat_id }}">
+                        {{ seat_num }}
+                    </div>
+                {% endfor %}
+            {% endfor %}
+        </div>
+
+        <div class="text-center mt-8">
+            <button id="bookSeatsButton"
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-md shadow-lg transition duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled>
+                Proceed to Confirm Booking
+            </button>
+        </div>
+    </main>
+
+    <!-- Message Box -->
+    <div id="messageBox" class="fixed bottom-4 right-4 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg hidden">
+        <span id="messageText"></span>
+    </div>
+
+    <!-- Hidden element for booked seats JSON -->
+    <span id="bookedSeatsRaw" style="display:none;">{{ booked_seats|tojson|safe }}</span>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-6 mt-auto">
+        <div class="container mx-auto text-center">
+            <p>&copy; 2025 TravelApp. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        const numPersons = parseInt(document.getElementById('numPersonsDisplay').textContent);
+        const bookSeatsButton = document.getElementById('bookSeatsButton');
+        const requiredSeatsCountSpan = document.getElementById('requiredSeatsCount');
+        let selectedSeats = new Set();
+        let bookedSeats = new Set();
+
+        // Parse booked seats from hidden span
+        const bookedSeatsRawElem = document.getElementById('bookedSeatsRaw');
+        if (bookedSeatsRawElem) {
+            try {
+                const parsedBookedSeats = JSON.parse(bookedSeatsRawElem.textContent);
+                if (Array.isArray(parsedBookedSeats)) {
+                    bookedSeats = new Set(parsedBookedSeats);
+                }
+            } catch (e) {
+                bookedSeats = new Set();
+            }
+        }
+
+        requiredSeatsCountSpan.textContent = numPersons;
+
+        document.querySelectorAll('.seat.available').forEach(seatElement => {
+            seatElement.addEventListener('click', function() {
+                const seatId = this.dataset.seatId;
+                if (bookedSeats.has(seatId)) {
+                    showMessage("This seat is already booked.", 'warning');
+                    return;
+                }
+                if (selectedSeats.has(seatId)) {
+                    selectedSeats.delete(seatId);
+                    this.classList.remove('selected');
+                    this.classList.add('available');
+                } else {
+                    if (selectedSeats.size < numPersons) {
+                        selectedSeats.add(seatId);
+                        this.classList.add('selected');
+                        this.classList.remove('available');
+                    } else {
+                        showMessage(`You can only select ${numPersons} seat(s).`, 'warning');
+                    }
+                }
+                updateBookButtonState();
+            });
+        });
+
+        function updateBookButtonState() {
+            bookSeatsButton.disabled = selectedSeats.size !== numPersons;
+        }
+
+        bookSeatsButton.addEventListener('click', async function() {
+            if (selectedSeats.size !== numPersons) {
+                showMessage(`Please select exactly ${numPersons} seat(s) before proceeding.`, 'error');
+                return;
+            }
+
+            showMessage('Booking your selected seats...', 'info');
+            bookSeatsButton.disabled = true;
+
+            try {
+                const response = await fetch('/book_selected_seats', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ selectedSeats: Array.from(selectedSeats) })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showMessage(data.message, 'success');
+                    setTimeout(() => {
+                        window.location.href = data.redirect;
+                    }, 1500);
+                } else {
+                    showMessage(data.message, 'error');
+                    bookSeatsButton.disabled = false;
+                }
+            } catch (error) {
+                console.error('Error during seat selection:', error);
+                showMessage('An unexpected error occurred during seat selection.', 'error');
+                bookSeatsButton.disabled = false;
+            }
+        });
+
+        function showMessage(message, type = 'info') {
+            const messageBox = document.getElementById('messageBox');
+            const messageText = document.getElementById('messageText');
+
+            messageText.textContent = message;
+            messageBox.classList.remove('hidden');
+            messageBox.classList.remove('bg-green-600', 'bg-red-600', 'bg-orange-400', 'bg-gray-800');
+
+            if (type === 'success') {
+                messageBox.classList.add('bg-green-600');
+            } else if (type === 'error') {
+                messageBox.classList.add('bg-red-600');
+            } else if (type === 'warning') {
+                messageBox.classList.add('bg-orange-400');
+            } else {
+                messageBox.classList.add('bg-gray-800');
+            }
+
+            if (type !== 'error') {
+                setTimeout(() => {
+                    messageBox.classList.add('hidden');
+                }, 3000);
+            }
+        }
+    </script>
